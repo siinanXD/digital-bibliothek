@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ author.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="page narrow">
+        <header class="page-header">
+            <h1>{{ author.name }}</h1>
+            <a class="button ghost" href="/">Zurück zur Bibliothek</a>
+        </header>
+
+        <section class="detail-card stacked">
+            <div class="detail-content">
+                <p><strong>Geburtsdatum:</strong> {{ author.birth_date or "—" }}</p>
+                <p><strong>Sterbedatum:</strong> {{ author.date_of_death or "—" }}</p>
+                <p><strong>Anzahl Bücher:</strong> {{ author.books|length }}</p>
+
+                <div class="card-actions">
+                    <form method="POST" action="/author/{{ author.id }}/delete">
+                        <button class="button warning" type="submit">Autor löschen</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="author-books">
+                <h2>Bücher dieses Autors</h2>
+                {% if author.books %}
+                    <ul class="detail-list">
+                        {% for book in author.books %}
+                            <li>
+                                <a href="/book/{{ book.id }}">{{ book.title }}</a>
+                                {% if book.rating is not none %}
+                                    — {{ book.rating }}/10
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>Keine Bücher vorhanden.</p>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</body>
+</html>

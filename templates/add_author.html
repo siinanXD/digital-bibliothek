@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autor hinzufügen</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="page narrow">
+        <header class="page-header">
+            <h1>Autor hinzufügen</h1>
+            <a class="button ghost" href="/">Zurück zur Bibliothek</a>
+        </header>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash-message">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% if success_message %}
+            <div class="success-message">{{ success_message }}</div>
+        {% endif %}
+
+        <section class="form-card">
+            <form method="POST" class="form-grid">
+                <div class="field">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+
+                <div class="field">
+                    <label for="birth_date">Geburtsdatum</label>
+                    <input type="date" id="birth_date" name="birth_date">
+                </div>
+
+                <div class="field">
+                    <label for="date_of_death">Sterbedatum</label>
+                    <input type="date" id="date_of_death" name="date_of_death">
+                </div>
+
+                <div class="form-actions">
+                    <button class="button primary" type="submit">Autor speichern</button>
+                </div>
+            </form>
+        </section>
+    </div>
+</body>
+</html>

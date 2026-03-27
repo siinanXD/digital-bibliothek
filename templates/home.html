@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digitale Bibliothek</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="page">
+        <header class="hero">
+            <div>
+                <p class="eyebrow">Digitale Bibliothek</p>
+                <h1>Meine Bücherwelt</h1>
+                <p class="hero-text">
+                    Verwalte Autoren, Bücher, Bewertungen und entdecke neue Empfehlungen.
+                </p>
+            </div>
+
+            <div class="hero-actions">
+                <a class="button primary" href="/add_author">Autor hinzufügen</a>
+                <a class="button primary" href="/add_book">Buch hinzufügen</a>
+                <a class="button secondary" href="/recommendation">KI-Empfehlung</a>
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <section class="flash-wrapper">
+                    {% for message in messages %}
+                        <div class="flash-message">{{ message }}</div>
+                    {% endfor %}
+                </section>
+            {% endif %}
+        {% endwith %}
+
+        <section class="toolbar">
+            <form method="GET" action="/" class="toolbar-form">
+                <div class="field">
+                    <label for="search">Suche</label>
+                    <input
+                        type="text"
+                        id="search"
+                        name="search"
+                        value="{{ search_term }}"
+                        placeholder="Titel, ISBN oder Autor"
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="sort">Sortieren nach</label>
+                    <select name="sort" id="sort">
+                        <option value="title" {% if selected_sort == "title" %}selected{% endif %}>
+                            Titel
+                        </option>
+                        <option value="author" {% if selected_sort == "author" %}selected{% endif %}>
+                            Autor
+                        </option>
+                        <option value="rating" {% if selected_sort == "rating" %}selected{% endif %}>
+                            Bewertung
+                        </option>
+                    </select>
+                </div>
+
+                <div class="toolbar-buttons">
+                    <button class="button primary" type="submit">Anwenden</button>
+                    <a class="button ghost" href="/">Zurücksetzen</a>
+                </div>
+            </form>
+        </section>
+
+        {% if books %}
+            <section class="book-grid">
+                {% for book in books %}
+                    <article class="book-card">
+                        <div class="cover-wrapper">
+                            <img
+                                class="cover-image"
+                                src="https://covers.openlibrary.org/b/isbn/{{ book.isbn }}-M.jpg"
+                                alt="Cover von {{ book.title }}"
+                            >
+                        </div>
+
+                        <div class="book-content">
+                            <h2 class="book-title">
+                                <a href="/book/{{ book.id }}">{{ book.title }}</a>
+                            </h2>
+
+                            <p class="book-meta">
+                                <span>Autor:</span>
+                                <a href="/author/{{ book.author.id }}">{{ book.author.name }}</a>
+                            </p>
+
+                            <p class="book-meta"><span>ISBN:</span> {{ book.isbn }}</p>
+                            <p class="book-meta"><span>Erscheinungsjahr:</span> {{ book.publication_year or "—" }}</p>
+                            <p class="book-meta"><span>Bewertung:</span> {{ book.rating if book.rating is not none else "—" }}/10</p>
+
+                            <div class="card-actions">
+                                <form method="POST" action="/book/{{ book.id }}/delete">
+                                    <button class="button danger" type="submit">Buch löschen</button>
+                                </form>
+
+                                <form method="POST" action="/author/{{ book.author.id }}/delete">
+                                    <button class="button warning" type="submit">Autor löschen</button>
+                                </form>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </section>
+        {% else %}
+            <section class="empty-state">
+                {% if search_term %}
+                    <h2>Keine Treffer</h2>
+                    <p>Keine Bücher passen zur Suche „{{ search_term }}“.</p>
+                {% else %}
+                    <h2>Noch keine Bücher vorhanden</h2>
+                    <p>Füge zuerst Autoren und Bücher hinzu.</p>
+                {% endif %}
+            </section>
+        {% endif %}
+    </div>
+</body>
+</html>

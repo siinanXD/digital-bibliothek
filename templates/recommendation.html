@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KI-Buchempfehlung</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="page narrow">
+        <header class="page-header">
+            <h1>KI-Buchempfehlung</h1>
+            <a class="button ghost" href="/">Zurück zur Bibliothek</a>
+        </header>
+
+        <section class="detail-card stacked">
+            <div class="detail-content">
+                <h2>Bibliotheksgrundlage</h2>
+                {% if books %}
+                    <ul class="detail-list">
+                        {% for book in books %}
+                            <li>
+                                {{ book.title }} — {{ book.author.name }}
+                                {% if book.rating is not none %}
+                                    ({{ book.rating }}/10)
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>Es sind noch keine Bücher vorhanden.</p>
+                {% endif %}
+            </div>
+
+            <div class="recommendation-box">
+                <h2>Empfehlung</h2>
+                <div class="markdown-box">
+                    <pre>{{ recommendation_text }}</pre>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

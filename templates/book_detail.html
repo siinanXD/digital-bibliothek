@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ book.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="page narrow">
+        <header class="page-header">
+            <h1>{{ book.title }}</h1>
+            <a class="button ghost" href="/">Zurück zur Bibliothek</a>
+        </header>
+
+        <section class="detail-card">
+            <div class="detail-cover">
+                <img
+                    class="cover-image large"
+                    src="https://covers.openlibrary.org/b/isbn/{{ book.isbn }}-L.jpg"
+                    alt="Cover von {{ book.title }}"
+                >
+            </div>
+
+            <div class="detail-content">
+                <p><strong>Autor:</strong> <a href="/author/{{ book.author.id }}">{{ book.author.name }}</a></p>
+                <p><strong>ISBN:</strong> {{ book.isbn }}</p>
+                <p><strong>Erscheinungsjahr:</strong> {{ book.publication_year or "—" }}</p>
+                <p><strong>Bewertung:</strong> {{ book.rating if book.rating is not none else "—" }}/10</p>
+
+                <div class="card-actions">
+                    <form method="POST" action="/book/{{ book.id }}/delete">
+                        <button class="button danger" type="submit">Buch löschen</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>
