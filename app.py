@@ -1,8 +1,10 @@
 import os
-from datetime import datetime
+from datetime import datetime, date
 
 import requests
 from flask import Flask, render_template, request, redirect, url_for, flash
+from sqlalchemy.exc import SQLAlchemyError
+
 from data_models import db, Author, Book
 
 app = Flask(__name__)
@@ -27,10 +29,67 @@ def parse_date(date_string):
 
     Returns:
         date | None: Parsed date or None if empty.
+
+    Raises:
+        ValueError: If the format is invalid.
     """
     if not date_string:
         return None
     return datetime.strptime(date_string, "%Y-%m-%d").date()
+
+
+def validate_author_dates(birth_date, date_of_death):
+    """
+    Validate author birth and death dates.
+
+    Rules:
+    - birth date must not be in the future
+    - death date must not be in the future
+    - death date must be after birth date
+
+    Args:
+        birth_date (date | None): Author birth date.
+        date_of_death (date | None): Author death date.
+
+    Returns:
+        tuple[bool, str | None]: Validation result and error message.
+    """
+    today = date.today()
+
+    if birth_date and birth_date > today:
+        return False, "Das Geburtsdatum darf nicht in der Zukunft liegen."
+
+    if date_of_death and date_of_death > today:
+        return False, "Das Sterbedatum darf nicht in der Zukunft liegen."
+
+    if birth_date and date_of_death and date_of_death <= birth_date:
+        return False, "Das Sterbedatum muss nach dem Geburtsdatum liegen."
+
+    return True, None
+
+
+def safe_commit(success_message=None):
+    """
+    Safely commit the current database session.
+
+    Args:
+        success_message (str | None): Optional flash message on success.
+
+    Returns:
+        bool: True if commit succeeded, otherwise False.
+    """
+    try:
+        db.session.commit()
+        if success_message:
+            flash(success_message)
+        return True
+    except SQLAlchemyError:
+        db.session.rollback()
+        flash(
+            "Beim Speichern in der Datenbank ist ein Fehler aufgetreten.",
+            "error"
+        )
+        return False
 
 
 def generate_ai_recommendation(books):
@@ -55,8 +114,10 @@ def generate_ai_recommendation(books):
             (
                 f"- Titel: {book.title}, "
                 f"Autor: {book.author.name}, "
-                f"Jahr: {book.publication_year if book.publication_year else 'unbekannt'}, "
-                f"Bewertung: {book.rating if book.rating is not None else 'keine'}"
+                f"Jahr: "
+                f"{book.publication_year if book.publication_year else 'unbekannt'}, "
+                f"Bewertung: "
+                f"{book.rating if book.rating is not None else 'keine'}"
             )
             for book in books
         ]
@@ -159,8 +220,20 @@ def add_author():
             flash("Bitte gib einen Autorennamen ein.")
             return redirect(url_for("add_author"))
 
-        birth_date = parse_date(birth_date_raw)
-        date_of_death = parse_date(date_of_death_raw)
+        try:
+            birth_date = parse_date(birth_date_raw)
+            date_of_death = parse_date(date_of_death_raw)
+        except ValueError:
+            flash("Bitte gib die Daten im Format JJJJ-MM-TT ein.", "error")
+            return redirect(url_for("add_author"))
+
+        is_valid, error_message = validate_author_dates(
+            birth_date,
+            date_of_death
+        )
+        if not is_valid:
+            flash(error_message, "error")
+            return redirect(url_for("add_author"))
 
         new_author = Author(
             name=name,
@@ -168,9 +241,10 @@ def add_author():
             date_of_death=date_of_death
         )
         db.session.add(new_author)
-        db.session.commit()
 
         success_message = f"Autor '{name}' wurde erfolgreich hinzugefügt."
+        if not safe_commit(success_message):
+            return redirect(url_for("add_author"))
 
     return render_template("add_author.html", success_message=success_message)
 
@@ -197,9 +271,15 @@ def add_book():
             flash("Bitte fülle ISBN, Titel und Autor aus.")
             return redirect(url_for("add_book"))
 
-        publication_year = int(publication_year_raw) if publication_year_raw else None
-        author_id = int(author_id_raw)
-        rating = int(rating_raw) if rating_raw else None
+        try:
+            publication_year = (
+                int(publication_year_raw) if publication_year_raw else None
+            )
+            author_id = int(author_id_raw)
+            rating = int(rating_raw) if rating_raw else None
+        except ValueError:
+            flash("Bitte gib gültige Zahlen für Jahr, Autor und Bewertung ein.", "error")
+            return redirect(url_for("add_book"))
 
         if rating is not None and not 1 <= rating <= 10:
             flash("Die Bewertung muss zwischen 1 und 10 liegen.")
@@ -218,9 +298,10 @@ def add_book():
             rating=rating
         )
         db.session.add(new_book)
-        db.session.commit()
 
         success_message = f"Buch '{title}' wurde erfolgreich hinzugefügt."
+        if not safe_commit(success_message):
+            return redirect(url_for("add_book"))
 
     return render_template(
         "add_book.html",
@@ -276,12 +357,14 @@ def delete_book(book_id):
     book_title = book.title
 
     db.session.delete(book)
-    db.session.commit()
+    if not safe_commit():
+        return redirect(url_for("home"))
 
     remaining_books = Book.query.filter_by(author_id=author.id).count()
     if remaining_books == 0:
         db.session.delete(author)
-        db.session.commit()
+        if not safe_commit():
+            return redirect(url_for("home"))
 
     flash(f"Buch '{book_title}' wurde erfolgreich gelöscht.")
     return redirect(url_for("home"))
@@ -302,7 +385,8 @@ def delete_author(author_id):
     author_name = author.name
 
     db.session.delete(author)
-    db.session.commit()
+    if not safe_commit():
+        return redirect(url_for("home"))
 
     flash(f"Autor '{author_name}' und alle zugehörigen Bücher wurden gelöscht.")
     return redirect(url_for("home"))
